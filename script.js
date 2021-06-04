@@ -7,10 +7,15 @@ const countdownElTitle = document.getElementById("countdown-title");
 const countDownBtn = document.getElementById("countdown-button");
 const timeElements = document.querySelectorAll("span");
 
+const completeEl = document.getElementById("complete");
+const completeElInfo = document.getElementById("complete-info");
+const completeBtn = document.getElementById("complete-btn");
+
 let countdownTitle = "";
 let countdownDate = "";
 let countdownValue = Date;
 let countdownActive;
+let savedCountdown;
 
 const second = 1000;
 const minute = second * 60;
@@ -32,17 +37,25 @@ const updateDOM = () => {
     const minutes = Math.floor((distance % hour) / minute);
     const seconds = Math.floor((distance % minute) / second);
 
-    // Populate Countdown
-    countdownElTitle.textContent = `${countdownTitle}`;
-    timeElements[0].textContent = `${days}`;
-    timeElements[1].textContent = `${hours}`;
-    timeElements[2].textContent = `${minutes}`;
-    timeElements[3].textContent = `${seconds}`;
-
     // Hide Input
     inputContainer.hidden = true;
-    // Show Countdown
-    countdownEl.hidden = false;
+
+    // If the countdown has ended, show complete
+    if (distance < 0) {
+      countdownEl.hidden = true;
+      clearInterval(countdownActive);
+      completeElInfo.textContent = `${countdownTitle} fineshed on ${countdownDate}`;
+      completeEl.hidden = false;
+    } else {
+      // Else, show the coundown in progress
+      countdownElTitle.textContent = `${countdownTitle}`;
+      timeElements[0].textContent = `${days}`;
+      timeElements[1].textContent = `${hours}`;
+      timeElements[2].textContent = `${minutes}`;
+      timeElements[3].textContent = `${seconds}`;
+      completeEl.hidden = true;
+      countdownEl.hidden = false;
+    }
   }, second);
 };
 
@@ -52,6 +65,11 @@ const updateCountDown = (e) => {
 
   countdownTitle = e.srcElement[0].value;
   countdownDate = e.srcElement[1].value;
+  savedCountdown = {
+    title: countdownTitle,
+    date: countdownDate,
+  };
+  localStorage.setItem("countdown", JSON.stringify(savedCountdown));
 
   // Check for valid date
   if (countdownDate === "") {
@@ -67,6 +85,7 @@ const updateCountDown = (e) => {
 const reset = () => {
   // Hide Countdowns, Show Input
   countdownEl.hidden = true;
+  completeEl.hidden = true;
   inputContainer.hidden = false;
 
   // Stop the countdown
@@ -75,8 +94,25 @@ const reset = () => {
   // Reset Values
   countdownTitle = "";
   countdownDate = "";
+  localStorage.removeItem("countdown");
+};
+
+const restorePreviousCountdown = () => {
+  // Get countdown from localStorage if available
+  if (localStorage.getItem("countdown")) {
+    inputContainer.hidden = true;
+    savedCountdown = JSON.parse(localStorage.getItem("countdown"));
+    countdownTitle = savedCountdown.title;
+    countdownDate = savedCountdown.date;
+    countdownValue = new Date(countdownDate).getTime();
+    updateDOM();
+  }
 };
 
 // Event Listeners
 countdownForm.addEventListener("submit", updateCountDown);
 countDownBtn.addEventListener("click", reset);
+completeEl.addEventListener("click", reset);
+
+// On Load, check localStorage
+restorePreviousCountdown();
